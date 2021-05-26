@@ -25,7 +25,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
-import android.content.res.AssetManager;
 import android.content.res.Resources;
 import android.graphics.BitmapFactory;
 import android.graphics.SurfaceTexture;
@@ -63,13 +62,10 @@ import androidx.navigation.fragment.NavHostFragment;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
-import org.braincopy.silbala.ARView;
-
-import java.io.BufferedReader;
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Hiroaki Tateshita
@@ -96,7 +92,6 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
     private ISSARView arView;
     //    private LocationManager locationManager;
     public float lat, lon, alt;
-    //    private GeomagneticField geomagneticField;
     private boolean isUsingGPS = false;
     private View myView;
     private CaptureRequest.Builder mPreviewRequestBuilder;
@@ -156,16 +151,17 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
 
             CameraCharacteristics characteristics = mCameraManager.getCameraCharacteristics(mCameraId);
             StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            assert map != null;
             Size mPreviewSize = map.getOutputSizes(SurfaceTexture.class)[0];
             texture.setDefaultBufferSize(mPreviewSize.getWidth(),mPreviewSize.getHeight());
 
             Surface surface = new Surface(texture);
 
-            // CaptureRequestを生成
+            // CaptureRequest
             mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             mPreviewRequestBuilder.addTarget(surface);
 
-            // CameraCaptureSessionを生成
+            // CameraCaptureSession
             mCameraDevice.createCaptureSession(Arrays.asList(surface),
                     new CameraCaptureSession.StateCallback() {
 
@@ -200,7 +196,9 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
 
         mTextureView = view.findViewById(R.id.cam_textureView);
 
-        mCameraManager = (CameraManager) getContext().getSystemService(Context.CAMERA_SERVICE);
+        worker = new SatelliteInfoWorker();
+
+        mCameraManager = (CameraManager) requireContext().getSystemService(Context.CAMERA_SERVICE);
 
         String[] cameraIdList = new String[0];
         try {
@@ -222,7 +220,7 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
-
+/*
         ConnectivityManager cm = (ConnectivityManager) getActivity()
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = cm.getActiveNetworkInfo();
@@ -233,7 +231,7 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
             // worker.setGnssString(gnssString);
             startInternetConnection();
         }
-
+*/
         FloatingActionButton fab = view.findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -286,6 +284,10 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
         }
         alt = pref.getFloat("defaultAlt", 0f);
 
+        /*
+        worker's position is set here.
+         */
+        worker.setLatLon(lat, lon);
 
     }
 
@@ -424,23 +426,69 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
             arView.drawScreen(actual_orientation, lat, lon);
         }
         if (worker != null) {
-            if (worker.getStatus() == SatelliteInfoWorker.INFORMATION_LOADED_WO_LOCATION) {
-                this.satellites = worker.getSatArray();
+            if(worker.getStatus() == SatelliteInfoWorker.INITIAL_STATUS){
+                if(connectNetwork(worker)){
+                    worker.setStatus(SatelliteInfoWorker.CONNECTED);
+                    arView.setStatus("network connected");
+                }
+            } else if (worker.getStatus() == SatelliteInfoWorker.CONNECTED) {
+                if(!isUsingGPS){
+                    worker.setStatus(SatelliteInfoWorker.LOCALIZED);
+                }else {
+                    //just wait
+                }
+            } else if (worker.getStatus() == SatelliteInfoWorker.LOCALIZED) {
+                //try to get azimuth elevation information from web service.
+                // if successful, the status of worker will be changed to "INFORMATION_LOADED"
+                if(!worker.isAlive()) {
+                    worker.start();
+                    arView.setStatus("getting azimuth and elevation information");
+                }
+            } else if (worker.getStatus() == SatelliteInfoWorker.INFORMATION_LOADED) {
+                if(this.satellites == null){
+                    this.satellites = worker.getSatArray();
+                }
                 if (loadImages()) {
                     worker.setStatus(SatelliteInfoWorker.IMAGE_LOADED);
                     arView.setSatellites(satellites);
-                    arView.setStatus("getting location...");
+                    arView.setStatus("Image Loaded");
                 }
+            } else if (worker.getStatus() == SatelliteInfoWorker.INFORMATION_LOADED_WO_LOCATION) {
+                //no one comes here
             } else if (worker.getStatus() == SatelliteInfoWorker.IMAGE_LOADED) {
-                this.satellites = worker.getSatArray();
-                if (loadImages()) {
                     worker.setStatus(SatelliteInfoWorker.COMPLETED);
-                    arView.setSatellites(satellites);
-                }
+                    arView.setStatus("completed");
             }
         }
 
     }
+
+    /**
+     *
+     * @return
+     */
+    private boolean connectNetwork(SatelliteInfoWorker _worker){
+        boolean result = false;
+
+        ConnectivityManager cm = (ConnectivityManager) getActivity()
+                .getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = cm.getActiveNetworkInfo();
+        if (networkInfo != null && networkInfo.isConnected()) {
+ //           worker = new SatelliteInfoWorker();
+//            worker.setLatLon(lat, lon);
+            _worker.setCurrentDate(new Date(System.currentTimeMillis()));
+            // worker.setGnssString(gnssString);
+//            _worker.start();
+            result = true;
+        }
+
+        return result;
+    }
+
+    /**
+     *
+     * @return
+     */
     private boolean loadImages() {
         boolean result = false;
         Resources resources = this.getResources();
@@ -448,60 +496,6 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
         satellites[0].setImage(BitmapFactory.decodeResource(resources, R.drawable.iis));
         satellites[0].setDescription("International Space Station");
         result = true;
-            /*
-        try {
-            AssetManager assetManager = resources.getAssets();
-            is = assetManager.open("satelliteDataBase.txt");
-            BufferedReader br = new BufferedReader(new InputStreamReader(is));
-            ArrayList<String[]> datalist = new ArrayList<String[]>();
-            String buf = null;
-            try {
-                while ((buf = br.readLine()) != null) {
-                    datalist.add(buf.split("\t"));
-                }
-                String gnssStr = "";
-                for (int i = 0; i < satellites.length; i++) {
-                    gnssStr = getGnssStr(satellites[i].getCatNo(), datalist);
-                    if (gnssStr != null) {
-                        satellites[i].setDescription(getSatInfo(
-                                satellites[i].getCatNo(), datalist));
-                        if (gnssStr.equals("qzss")) {
-                            satellites[i]
-                                    .setImage(BitmapFactory.decodeResource(
-                                            resources, R.drawable.qzss));
-                        } else if (gnssStr.equals("galileo")) {
-                            satellites[i].setImage(BitmapFactory
-                                    .decodeResource(resources,
-                                            R.drawable.galileo));
-                        } else if (gnssStr.equals("galileofoc")) {
-                            satellites[i].setImage(BitmapFactory
-                                    .decodeResource(resources,
-                                            R.drawable.galileofoc));
-                        } else if (gnssStr.equals("gpsBlockIIF")) {
-                            satellites[i].setImage(BitmapFactory
-                                    .decodeResource(resources, R.drawable.iif));
-                        }
-                    }
-                }
-                result = true;
-            } catch (IOException e) {
-                Log.e("hiro",
-                        "failed when to read a line of the satellite database text file."
-                                + e);
-                e.printStackTrace();
-            }
-            is.close();
-            br.close();
-        } catch (FileNotFoundException e) {
-            Log.e("hiro", "" + e);
-            e.printStackTrace();
-        } catch (IOException e1) {
-            Log.e("hiro", "" + e1);
-            e1.printStackTrace();
-        }
-
-  */
-
         return result;
     }
 
@@ -517,6 +511,8 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
 
         if(isUsingGPS) {
             startLocationUpdates();
+        }else{
+
         }
 
         mSensorManager.registerListener(this, mListMag.get(0),
@@ -581,16 +577,12 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
 
         geomagneticField = new GeomagneticField(lat, lon, alt,
                 new Date().getTime());
-        if (this.satellites != null && worker != null) {
-            if (worker.getStatus() == SatelliteInfoWorker.IMAGE_LOADED) {
-                worker = new SatelliteInfoWorker();
-                worker.setStatus(SatelliteInfoWorker.IMAGE_LOADED);
-                worker.setLatLon(lat, lon);
-                worker.setCurrentDate(new Date(System.currentTimeMillis()));
-                worker.start();
-            } else if (worker.getStatus() == SatelliteInfoWorker.COMPLETED) {
-                this.arView
-                        .setStatus("position is updated and information loaded.");
+        if(worker!= null) {
+            if(worker.getStatus()==SatelliteInfoWorker.CONNECTED){
+                worker.setStatus(SatelliteInfoWorker.LOCALIZED);
+                arView.setStatus("got location");
+            }else {
+                // do nothing
             }
         }
 

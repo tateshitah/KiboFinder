@@ -1,3 +1,22 @@
+/*
+Copyright (c) 2021 Hiroaki Tateshita
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+ */
+
 package org.braincopy.kibofinder;
 
 import java.io.BufferedInputStream;
@@ -40,28 +59,30 @@ import android.util.Log;
 
 /**
  * This class will work for you to get any information related satellite from
- * Internet.
+ * Internet. In the run() method, this thread object will try to get azimuth and elevation information from a web service.
  *
  * @author Hiroaki Tateshita
  * @version 0.7.2
  */
 public class SatelliteInfoWorker extends Thread {
     static final int INITIAL_STATUS = 0;
-//    static final int CONNECTING = 1;
+    //    static final int CONNECTING = 1;
     static final int CONNECTED = 2;
     static final int COMPLETED = 3;
     static final int IMAGE_LOADED = 4;
     // static final int LOADING_IMAGES = 5;
     static final int INFORMATION_LOADED_WO_LOCATION = 6;
+    static final int INFORMATION_LOADED = 9;
     // static final int LOCATION_UPDATED = 7;
     // static final int INFORMATION_LOADED_W_LOCATION = 8;
+    static final int LOCALIZED = 10;
     static final String TAG = "kibofinder";
     float lat, lon;
     // private MessageListener messageListener;
     private Date currentDate;
     private Satellite[] satArray;
     private int status = SatelliteInfoWorker.INITIAL_STATUS;
-    private String gnssString;
+//    private String gnssString;
 
     public SatelliteInfoWorker() {
     }
@@ -106,7 +127,7 @@ public class SatelliteInfoWorker extends Thread {
 
     @Override
     public void run() {
-        final int TIMEOUT_MILLIS = 0;// タイムアウトミリ秒：0は無限
+        final int TIMEOUT_MILLIS = 0;// unit is milli seconds, 0 means infinite.
 
         final StringBuffer sb = new StringBuffer("");
 
@@ -117,10 +138,10 @@ public class SatelliteInfoWorker extends Thread {
         InputStreamReader isr = null;
 
         Uri.Builder builder = new Uri.Builder();
-        //builder.scheme("https");
-        //builder.encodedAuthority("braincopy.org");
-        builder.scheme("http");
-        builder.encodedAuthority("192.168.11.10:8080");
+        builder.scheme("https");
+        builder.encodedAuthority("braincopy.org");
+        //builder.scheme("http");
+        //builder.encodedAuthority("192.168.11.10:8080");
         builder.path("/tlews/app/az_and_el");
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss",
                 Locale.US);
@@ -140,7 +161,7 @@ public class SatelliteInfoWorker extends Thread {
                 DocumentBuilder docBuilder = factory.newDocumentBuilder();
                 doc = docBuilder.parse(is);
                 createSatelliteArray(doc);
-                setStatus(SatelliteInfoWorker.INFORMATION_LOADED_WO_LOCATION);
+                setStatus(SatelliteInfoWorker.INFORMATION_LOADED);
 
             } else {
                 Log.e(TAG, "http connection error!!: " + httpConn.getResponseCode());
@@ -183,7 +204,7 @@ public class SatelliteInfoWorker extends Thread {
         this.status = _status;
     }
 
-    public void setGnssString(String gnssString_) {
-        this.gnssString = gnssString_;
-    }
+    //   public void setGnssString(String gnssString_) {
+    //      this.gnssString = gnssString_;
+    //  }
 }
