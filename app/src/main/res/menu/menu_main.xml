@@ -16,4 +16,8 @@
         android:id="@+id/action_close"
         app:showAsAction="never"
         android:title="@string/menu_close" />
+    <item
+        android:id="@+id/action_info"
+        android:orderInCategory="200"
+        android:title="@string/menu_title_information" />
 </menu>

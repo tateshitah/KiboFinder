@@ -1,0 +1,4 @@
+KIBO Finder
+-----
+
+KIBOFinder gets position information from user android equipment only for the calculation of relative positions of the international space station from the user’s current location. Camera and External storage such as SD card will be accessed by this application to save the pictures of your view with satellites as Augmented Reality. Any other information including camera data will never be shared with other people  without  user’s intention.

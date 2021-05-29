@@ -1,0 +1,24 @@
+KIBO Finder
+-----
+
+Copyright (c) 2020-2021 Hiroaki Tateshita
+MIT License
+https://github.com/tateshitah/KiboFinder
+
+-----
+
+This application uses Two Line Element (TLE) data of Space Track to calculate
+azimuth and elevation of target satellites.
+https://www.space-track.org/
+
+-----
+
+This application uses Open Software Library: SiLBALA.
+
+SiLBARA
+Copyright (c) 2013-2015 Hiroaki Tateshita
+MIT License
+https://github.com/tateshitah/SiLBALA
+
+
+

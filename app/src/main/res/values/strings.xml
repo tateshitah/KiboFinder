@@ -33,4 +33,5 @@
     <string name="gpw_access_required">we need location information by using GPS</string>
     <string name="location_access_denied">sorry, this function cannot work without fine location.</string>
     <string name="action_privacy">Privacy Policy</string>
+    <string name="menu_title_information">Information</string>
 </resources>
