@@ -7,6 +7,12 @@ import com.google.android.material.snackbar.Snackbar;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
+import androidx.navigation.fragment.NavHostFragment;
 
 import android.view.View;
 import android.view.Menu;
@@ -40,7 +46,18 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-
+            NavHostFragment navHostFragment = (NavHostFragment)getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
+            NavController navController = navHostFragment.getNavController();
+            Fragment fragment = navHostFragment.getChildFragmentManager().getFragments().get(0);
+            if(fragment instanceof MainFragment) {
+                navController.navigate(R.id.action_MainFragment_to_SettingFragment);
+            }else if(fragment instanceof MapFragment){
+                navController.navigate(R.id.action_MapFragment_to_SettingFragment);
+            }else if(fragment instanceof CameraFragment){
+                navController.navigate(R.id.action_CameraFragment_to_SettingFragment);
+            }else {
+                //no action
+            }
             return true;
         }else if (id == R.id.action_close) {
             this.moveTaskToBack(true);

@@ -30,6 +30,9 @@
         <action
             android:id="@+id/action_CameraFragment_to_MainFragment"
             app:destination="@id/MainFragment" />
+        <action
+            android:id="@+id/action_CameraFragment_to_SettingFragment"
+            app:destination="@id/SettingFragment" />
     </fragment>
     <fragment
         android:id="@+id/MapFragment"
@@ -40,6 +43,9 @@
         <action
             android:id="@+id/action_MapFragment_to_MainFragment"
             app:destination="@id/MainFragment" />
+        <action
+            android:id="@+id/action_MapFragment_to_SettingFragment"
+            app:destination="@id/SettingFragment" />
     </fragment>
     <fragment
         android:id="@+id/SettingFragment"
