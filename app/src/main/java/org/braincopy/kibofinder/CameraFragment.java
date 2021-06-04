@@ -26,6 +26,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.SurfaceTexture;
 import android.hardware.GeomagneticField;
@@ -46,6 +47,7 @@ import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.util.Size;
 import android.view.LayoutInflater;
@@ -53,6 +55,8 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -62,6 +66,8 @@ import androidx.navigation.fragment.NavHostFragment;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -220,18 +226,7 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
-/*
-        ConnectivityManager cm = (ConnectivityManager) getActivity()
-                .getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = cm.getActiveNetworkInfo();
-        if (networkInfo != null && networkInfo.isConnected()) {
-            worker = new SatelliteInfoWorker();
-            worker.setLatLon(lat, lon);
-            worker.setCurrentDate(new Date(System.currentTimeMillis()));
-            // worker.setGnssString(gnssString);
-            startInternetConnection();
-        }
-*/
+
         FloatingActionButton fab = view.findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -240,20 +235,35 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
                         .navigate(R.id.action_CameraFragment_to_MainFragment);
             }
         });
-        /*
 
-//todo implementation of camera shutter function:
 
-        ImageButton shutterButton = (ImageButton) findViewById(R.id.cameraShutter);
-        shutterButton.setOnClickListener(new OnClickListener() {
+        ImageButton shutterButton = (ImageButton) getActivity().findViewById(R.id.cameraShutter);
+        shutterButton.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
-                callbackImple.takePicture();
+                try {
+                    //stop camera preview
+                    mCaptureSession.stopRepeating();
+                    File mFile = null;
+                    if (mTextureView.isAvailable()) {
+                        mFile = new File(getActivity().getExternalFilesDir(Environment.DIRECTORY_PICTURES), "sample.jpg");
+                        FileOutputStream fos = new FileOutputStream(mFile);
+                        Bitmap bmp = mTextureView.getBitmap();
+                        bmp.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                        fos.close();
+                    }
 
-            }
+                    // restart camera preview
+                    mCaptureSession.setRepeatingRequest(mPreviewRequest, null, null);
+
+                    if(mFile != null) {
+                        Toast.makeText(getActivity(), "Saved: " + mFile, Toast.LENGTH_SHORT).show();
+                    }
+                } catch(Exception e){
+                    e.printStackTrace();
+                }            }
         });
-*/
 
         mSensorManager = (SensorManager) getActivity().getSystemService(Context.SENSOR_SERVICE);
         mListMag = mSensorManager.getSensorList(Sensor.TYPE_MAGNETIC_FIELD);
@@ -493,8 +503,12 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
         boolean result = false;
         Resources resources = this.getResources();
 //        InputStream is;
-        satellites[0].setImage(BitmapFactory.decodeResource(resources, R.drawable.iis));
+        satellites[0].setImage(BitmapFactory.decodeResource(resources, R.drawable.iss));
         satellites[0].setDescription("International Space Station");
+        for(int i=1; i<satellites.length;i++){
+            satellites[i].setImage(BitmapFactory.decodeResource(resources,R.drawable.blue_dot));
+           // satellites[i].setDescription("future track");
+        }
         result = true;
         return result;
     }
@@ -579,6 +593,7 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
                 new Date().getTime());
         if(worker!= null) {
             if(worker.getStatus()==SatelliteInfoWorker.CONNECTED){
+                worker.setLatLon(lat, lon);
                 worker.setStatus(SatelliteInfoWorker.LOCALIZED);
                 arView.setStatus("got location");
             }else {

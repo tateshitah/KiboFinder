@@ -119,6 +119,9 @@ public class SatelliteInfoWorker extends Thread {
                         .equals("SatelliteNumber")) {
                     result[i].setCatNo(satObs.item(k).getFirstChild()
                             .getNodeValue());
+                } else if (satObs.item(k).getNodeName().equals("ObTime")){
+                    result[i].setDescription(satObs.item(k).getFirstChild()
+                            .getNodeValue());
                 }
             }
         }
@@ -150,6 +153,8 @@ public class SatelliteInfoWorker extends Thread {
         builder.appendQueryParameter("lat", Float.toString(lat));
         builder.appendQueryParameter("lon", Float.toString(lon));
         builder.appendQueryParameter("norad_cat_id", "25544");
+        builder.appendQueryParameter("term", "5400");
+        builder.appendQueryParameter("step", "60");
 
         try {
             URL url = new URL(builder.build().toString());
