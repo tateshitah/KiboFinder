@@ -28,6 +28,8 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.hardware.GeomagneticField;
 import android.hardware.Sensor;
@@ -249,8 +251,26 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
                     if (mTextureView.isAvailable()) {
                         mFile = new File(getActivity().getExternalFilesDir(Environment.DIRECTORY_PICTURES), "sample.jpg");
                         FileOutputStream fos = new FileOutputStream(mFile);
-                        Bitmap bmp = mTextureView.getBitmap();
-                        bmp.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                        Bitmap cameraMap = mTextureView.getBitmap();
+
+                        Bitmap overlayMap = arView.getDrawingCache(false);
+                        Log.i(TAG,
+                                "cameraMap h:"
+                                        + cameraMap.getHeight() + ", w:"
+                                        + cameraMap.getWidth() + ", overLayMap h:"
+                                        + overlayMap.getHeight() + ", w:"
+                                        + overlayMap.getWidth());
+                        Bitmap offBitmap = Bitmap.createBitmap(cameraMap.getWidth(),
+                                cameraMap.getHeight(), Bitmap.Config.ARGB_8888);
+                        Canvas canvasForCombine = new Canvas(offBitmap);
+                        canvasForCombine.drawBitmap(cameraMap, null, new Rect(0, 0,
+                                cameraMap.getWidth(), cameraMap.getHeight()), null);
+                        canvasForCombine.drawBitmap(overlayMap, null, new Rect(0, 0,
+                                cameraMap.getWidth(), cameraMap.getHeight()), null);
+
+                        offBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+
+
                         fos.close();
                     }
 
