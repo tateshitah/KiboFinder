@@ -121,7 +121,7 @@ public class SatelliteInfoWorker extends Thread {
                             .getNodeValue());
                 } else if (satObs.item(k).getNodeName().equals("ObTime")){
                     result[i].setDescription(satObs.item(k).getFirstChild()
-                            .getNodeValue());
+                            .getNodeValue().substring(0,8));//by substring, time string should be "hh:mm:ss"
                 }
             }
         }
