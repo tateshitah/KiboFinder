@@ -251,11 +251,10 @@ public class ARView extends View {
 	 * This method provides a function to draw the azimuth and elevation line.
 	 * 
 	 * @param canvas
-	 * @param paint
 	 * @param numOfLines
 	 *            number of lines between 0 - 90 degree of elevation.
 	 */
-	public void drawAzElLines(Canvas canvas, Paint paint, int numOfLines) {
+	public void drawAzElLines(Canvas canvas, int numOfLines) {
 
 		// create visible points array
 		Point[] points = new Point[(numOfLines + 1) * (numOfLines + 1) * 4];

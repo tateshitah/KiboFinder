@@ -65,16 +65,16 @@ public class ISSARView extends ARView {
 	@Override
 	protected void onDraw(Canvas canvas) {
 		super.onDraw(canvas);
-		drawAzElLines(canvas, paint, 8);
-		drawSatellites(canvas, paint);
+		drawAzElLines(canvas, 8);
+		//drawSatellites(canvas, paint);
+		drawSatellites(canvas);
 	}
 
 	/**
-	 * 
+	 *
 	 * @param canvas
-	 * @param paint
 	 */
-	private void drawSatellites(Canvas canvas, Paint paint) {
+	private void drawSatellites(Canvas canvas) {
 		float dx = 0;
 		float dy = 0;
 		Matrix matrix = new Matrix();
@@ -86,8 +86,8 @@ public class ISSARView extends ARView {
 			for (int i = 0; i < arObjs.length; i++) {
 				// if (satellites[i] != null) {
 				if (arObjs[i] != null) {
-					dx = arObjs[i].getImage().getWidth() / 2 * scale;
-					dy = arObjs[i].getImage().getHeight() / 2 * scale;
+					dx = arObjs[i].getImage().getWidth() / 2f * scale;
+					dy = arObjs[i].getImage().getHeight() / 2f * scale;
 					// point = convertAzElPoint(satellites[i].getAzimuth(),
 					// satellites[i].getElevation());
 					point = convertAzElPoint(
@@ -108,6 +108,7 @@ public class ISSARView extends ARView {
 			}
 		}
 	}
+
 
 	public Satellite[] getSatellites() {
 		return (Satellite[]) arObjs;

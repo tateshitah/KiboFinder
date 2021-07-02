@@ -53,6 +53,7 @@ import android.os.Environment;
 import android.util.Log;
 import android.util.Size;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
@@ -63,6 +64,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Lifecycle;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -118,6 +120,7 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
     private SatelliteInfoWorker worker;
     private Satellite[] satellites;
     private LocationManager mLocationManager;
+    private float[] previousValue;
 
     @Override
     public View onCreateView(
@@ -129,6 +132,14 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
                 container, false);
 
         arView = rootView.findViewById(R.id.arview);
+
+        //todo write for touch event!
+        arView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                return false;
+            }
+        });
 
         return rootView;
     }
@@ -249,7 +260,7 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
                     mCaptureSession.stopRepeating();
                     File mFile = null;
                     if (mTextureView.isAvailable()) {
-                        mFile = new File(getActivity().getExternalFilesDir(Environment.DIRECTORY_PICTURES), "sample.jpg");
+                        mFile = new File(getActivity().getExternalFilesDir(Environment.DIRECTORY_PICTURES), "ar"+Math.random()+".jpg");
                         FileOutputStream fos = new FileOutputStream(mFile);
                         Bitmap cameraMap = mTextureView.getBitmap();
 
@@ -288,6 +299,12 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
         mSensorManager = (SensorManager) getActivity().getSystemService(Context.SENSOR_SERVICE);
         mListMag = mSensorManager.getSensorList(Sensor.TYPE_MAGNETIC_FIELD);
         mListAcc = mSensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER);
+
+        previousValue = new float[3];
+        previousValue[0]=0f;
+        previousValue[1]=0f;
+        previousValue[2]=0f;
+
 
         getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
@@ -341,7 +358,7 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
                     @Override
                     public void onClick(View view) {
                         // Request the permission
-                        requestPermissions(new String[]{Manifest.permission.CAMERA},
+                        ActivityCompat.requestPermissions(getActivity(),new String[]{Manifest.permission.CAMERA},
                                 MY_PERMISSIONS_REQUEST_CAMERA);
                     }
                 }).show();
@@ -435,7 +452,6 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
         if (magneticValues != null && accelerometerValues != null) {
             float[] R = new float[16];
             float[] outR = new float[16];
-
             float[] I = new float[16];
 
             SensorManager.getRotationMatrix(R, I, accelerometerValues,
@@ -452,6 +468,8 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
 
             actual_orientation[0] = (float) (actual_orientation[0] + Math.PI * 0.5);
             actual_orientation[2] = -1 * actual_orientation[2];
+
+            actual_orientation = lowPassFilter(actual_orientation, previousValue, 0.95f);
 
             arView.drawScreen(actual_orientation, lat, lon);
         }
@@ -491,6 +509,22 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
             }
         }
 
+    }
+
+    private float[] lowPassFilter(float[] actual_orientation, float[] _previousValue, float _alpha) {
+        actual_orientation[0]=lowPassFilter(actual_orientation[0], _previousValue[0], _alpha);
+        actual_orientation[1]=lowPassFilter(actual_orientation[1], _previousValue[1], _alpha);
+        actual_orientation[2]=lowPassFilter(actual_orientation[2], _previousValue[2], _alpha);
+        previousValue = actual_orientation;
+        return actual_orientation;
+    }
+
+    private float lowPassFilter(float _actualValue, float _previousValue, float _alpha) {
+        if(_previousValue == 0f){
+            _previousValue=_actualValue;
+        }
+        _actualValue = _previousValue*_alpha + _actualValue*(1-_alpha);
+        return _actualValue;
     }
 
     /**
@@ -637,4 +671,5 @@ public class CameraFragment extends Fragment implements LocationListener, Sensor
     public void onProviderDisabled(String provider) {
 
     }
+
 }
